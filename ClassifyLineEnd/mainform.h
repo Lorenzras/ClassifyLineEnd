@@ -149,22 +149,27 @@ namespace ClassifyLineEnd {
 		limg.setMorpImg(limg.getBinImg());
 		img = limg.getMorpImg();
 
-		//thinning;
-		limg.setSkelImg(limg.getMorpImg());
-		img = limg.getSkelImg();
-
 		//edge detection;
-		//limg.setEdgeImg(limg.getBinImg());
+		//limg.setEdgeImg(limg.getMorpImg());
 		//img = limg.getCannyEdge();
 
-		//contouring;
+		//contouring and cleaning;
 		limg.setContourImg(limg.getMorpImg());
 		img = limg.getContourImg();
 
+		//thinning;
+		limg.setSkelImg(limg.getContourImg());
+		img = limg.getSkelImg();
+
 		//overlap;
 		limg.setOverlapImg(limg.getMorpImg(), limg.getSkelImg());
-		img = limg.getCannyEdge();
+		img = limg.getOverlap();
 
+		//line End
+		limg.setLineEndImg(limg.getBinImg());
+
+
+		OutputDebugString(TEXT("Done"));
 	}
 };
 }

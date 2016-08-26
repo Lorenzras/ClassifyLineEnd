@@ -18,6 +18,7 @@ using namespace cv;
 using namespace std;
 using namespace System::IO;
 using namespace System::Windows;
+using namespace System::Diagnostics;
 
 class lineimage
 {
@@ -28,10 +29,14 @@ class lineimage
 	Mat binaryImage;
 	Mat morphedImage;
 	Mat skeletonImage;
+	vector<cv::Point> skelPoints;
+
 	Mat edgeImage;
 	Mat overlapImage;
 	Mat contourImage;
+	
 	Mat lineEndImage;
+	
 	
 	cv::String  origImgPath;
 	cv::String defaultPath = "Results\\";
@@ -46,8 +51,8 @@ public:
 
 		origImage = imread(origImgPath, CV_LOAD_IMAGE_COLOR);
 		//blur(origImage, origImage, Size(3, 3));
-		medianBlur(origImage, origImage, 15);
-
+		//medianBlur(origImage, origImage, 15);
+		cv::resize(origImage, origImage, cv::Size(), 0.30, 0.30);
 		filename = strToCv(Path::GetFileName(imgpath));
 
 		imwrite(defaultPath + "orig_" +  filename, origImage);
@@ -61,7 +66,6 @@ public:
 		Mat res;
 		cvtColor(img, res, COLOR_RGB2GRAY);
 		
-
 		grayScaleImage = res;
 		imwrite(defaultPath + "gray_" + filename, res);
 
@@ -74,10 +78,10 @@ public:
 	///////////////////////
 	void setBinImg(Mat img) {
 		Mat res;
-		adaptiveThreshold(img, res, 255, ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, 11,-5);
+		//adaptiveThreshold(img, res, 255, ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, 11,-5);
 
-		//threshold(img, res, 0, 255, THRESH_OTSU);
-		//medianBlur(res, res, 15);
+		threshold(img, res, 0, 255, CV_THRESH_OTSU);
+
 		imwrite(defaultPath + "bin_" + filename,res);
 		binaryImage = res;
 	}
@@ -88,18 +92,18 @@ public:
 	///////////////////////
 
 	void setMorpImg(Mat img) {
-		Mat res;
+		Mat res = img.clone();
 		int morph_elem = 2;
-		int morph_size = 15;
+		int morph_size = 3;
 		int morph_operator = 0;
-		
+		//threshold(img, img, 0, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU);
 
 		//Mat element = getStructuringElement(morph_elem, Size(2 * morph_size + 1, 2 * morph_size + 1), Point(morph_size, morph_size));
 		Mat element = getStructuringElement(morph_elem, Size(2 * morph_size + 1, 2 * morph_size + 1), cv::Point(morph_size, morph_size));
 		
-		morphologyEx(img, res, MORPH_OPEN, element);
-		//morphologyEx(res, res, MORPH_OPEN, element);
-		
+		//erode(img, res, element, cv::Point(-1, -1), 7);
+
+		morphologyEx(res, res, MORPH_OPEN, element, cv::Point(-1,-1),3);
 
 		imwrite(defaultPath + "morp_" + filename, res);
 		morphedImage = res;
@@ -112,16 +116,34 @@ public:
 	///////////////////////
 	void setSkelImg(Mat img) {
 		Mat res = img.clone();
-		
-		thin(res, true, true, true);
+
+		cvtColor(res, res, COLOR_RGB2GRAY);
+		threshold(res, res, 0, 255, CV_THRESH_BINARY_INV);
+
+		thin(res, false, false, false);
+
 		imwrite(defaultPath + "thin_" + filename, res);
-		skeletonImage = res;
+		skeletonImage = res.clone();
+
+		//get the skeleton points.
+		threshold(res, res, 0, 255, CV_THRESH_BINARY_INV);
+		cv::findNonZero(res, skelPoints);
+		Debug::WriteLine(skelPoints.size());
+		Debug::WriteLine(skelPoints[skelPoints.size()-1].y);
+
+		//for (int i = 0; skelPoints.size(); i++) {
+		//	Debug::WriteLine(skelPoints[i].y);
+		//}
+		
 	}
 
 	Mat getSkelImg() {
 		return skeletonImage;
 	}
 
+	vector<cv::Point> getSkelPoints() {
+		return skelPoints;
+	}
 
 	//////////////////////
 
@@ -160,25 +182,29 @@ public:
 	void setContourImg(Mat img) {
 
 		Mat src = img.clone();
-		threshold(src, src, 0, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU);
 		Mat drawing;
-
 		vector<vector<cv::Point>> contours;
 		vector<Vec4i> heirachy;
-
-		medianBlur(src, src, 11);
+		threshold(src, src, 0, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU);
+		//medianBlur(src, src, 11);
 		
-		cv::findContours(src, contours, heirachy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+		cv::findContours(src, contours, heirachy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_TC89_KCOS, cv::Point(0, 0));
 
 		//Setup the output into black
 		drawing = Mat::zeros(src.size(), CV_8UC3);
 
 
 		//Draw contours
+		int largestCountour = 0;
 		for (int i = 0; i<contours.size(); i++)
 		{
-			cv::drawContours(drawing, contours, i, Scalar(255, 255, 255), 1, 8, heirachy, 0, cv::Point());
+			if (contourArea(contours[i]) > contourArea(contours[largestCountour])) {
+				largestCountour = i;
+			}
 		}
+
+		Debug::WriteLine(contourArea(contours[largestCountour]));
+		cv::drawContours(drawing, contours, largestCountour, Scalar(255, 255, 255), CV_FILLED, 8, heirachy, 0, cv::Point());
 
 		imwrite(defaultPath + "cont_" + filename, drawing);
 		contourImage = drawing;
@@ -188,27 +214,34 @@ public:
 		return contourImage;
 	}
 	////////////////////////
+
+
+
+
+
+	///////////////////////
 	void setLineEndImg(Mat img) {
 		Mat res = img.clone();
-
+		cvtColor(res, res, COLOR_GRAY2BGR);
+		circle(res, cv::Point(skelPoints[0].x, skelPoints[0].y), 32.0, Scalar(0, 0, 255), 1, 8);
 		
 		imwrite(defaultPath + "end_" + filename, res);
-		skeletonImage = res;
+		lineEndImage = res;
 	}
 
 	Mat getLineEndImg() {
 
 
 
-		return skeletonImage;
+		return lineEndImage;
 	}
 
 
 	////////////////////////
 	void setOverlapImg(Mat img, Mat img2) {
 		Mat res;
-		imwrite(defaultPath + "o_" + filename, img);
-		imwrite(defaultPath + "a_" + filename, img2);
+		imwrite(defaultPath + "b_" + filename, img);
+		imwrite(defaultPath + "s_" + filename, img2);
 
 		addWeighted(img, 0.5, img2, 0.5, 0.0, res);
 		imwrite(defaultPath + "over_" + filename, res);
