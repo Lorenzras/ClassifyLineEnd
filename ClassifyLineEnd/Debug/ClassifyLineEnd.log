@@ -1,0 +1,4 @@
+﻿  mainform.cpp
+mainform.cpp(7): warning C4829: Possibly incorrect parameters to function main. Consider 'int main(Platform::Array<Platform::String^>^ argv)'
+  ClassifyLineEnd.vcxproj -> c:\users\jherenz\documents\visual studio 2015\Projects\ClassifyLineEnd\Debug\ClassifyLineEnd.exe
+  ClassifyLineEnd.vcxproj -> c:\users\jherenz\documents\visual studio 2015\Projects\ClassifyLineEnd\Debug\ClassifyLineEnd.pdb (Full PDB)
