@@ -8,6 +8,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <msclr\marshal_cppstd.h>
 #include <iostream>
+#include <sstream>
 #include <windows.h>
 #include "zhangsuen.h"
 
@@ -23,19 +24,20 @@ using namespace System::Diagnostics;
 class lineimage
 {
 	
-
+//private:
 	Mat origImage;
 	Mat grayScaleImage;
 	Mat binaryImage;
 	Mat morphedImage;
 	Mat skeletonImage;
 	vector<cv::Point> skelPoints;
+	vector<cv::Point> endPoints;
+	//vector<int> endAreas;
 
 	Mat edgeImage;
 	Mat overlapImage;
 	Mat contourImage;
-	
-	Mat lineEndImage;
+
 	
 	
 	cv::String  origImgPath;
@@ -103,7 +105,7 @@ public:
 		
 		//erode(img, res, element, cv::Point(-1, -1), 7);
 
-		morphologyEx(res, res, MORPH_OPEN, element, cv::Point(-1,-1),3);
+		morphologyEx(res, res, MORPH_OPEN, element, cv::Point(-1,-1),1);
 
 		imwrite(defaultPath + "morp_" + filename, res);
 		morphedImage = res;
@@ -122,18 +124,14 @@ public:
 
 		thin(res, false, false, false);
 
+		//save thinned image
 		imwrite(defaultPath + "thin_" + filename, res);
+		
 		skeletonImage = res.clone();
 
-		//get the skeleton points.
+		//retrieve the skeleton points.
 		threshold(res, res, 0, 255, CV_THRESH_BINARY_INV);
 		cv::findNonZero(res, skelPoints);
-		Debug::WriteLine(skelPoints.size());
-		Debug::WriteLine(skelPoints[skelPoints.size()-1].y);
-
-		//for (int i = 0; skelPoints.size(); i++) {
-		//	Debug::WriteLine(skelPoints[i].y);
-		//}
 		
 	}
 
@@ -146,7 +144,60 @@ public:
 	}
 
 	//////////////////////
+	void setEndPoints(Mat img) {
+		Mat res = img.clone();
+		threshold(res, res, 0, 255, CV_THRESH_BINARY_INV);
+		vector<cv::Point> n = { cv::Point(-1,1), cv::Point(0,1), cv::Point(1,1),
+								cv::Point(-1,0), cv::Point(0, 0), cv::Point(1,0),
+								cv::Point(-1,-1), cv::Point(0,-1), cv::Point(1,-1) };
 
+		vector<cv::Point> end;
+		//Check neighbor
+		//possible bottle neck, convert ko to sa pointers. 
+		for (int i = 0; i < skelPoints.size(); i++) {
+			int nCount = 0;
+			for (int j = 0; j < n.size(); j++) {
+				if (res.at<uchar>(skelPoints[i].y + n[j].y,
+					skelPoints[i].x + n[j].x) == 255) {
+					nCount++;
+
+				}
+			}
+
+			if (nCount <= 2) {
+				end.push_back(cv::Point(skelPoints[i].x, skelPoints[i].y));
+			}
+
+			//res.at<uchar>(skelPoints[i].y, skelPoints[i].x); //tangnang to, dapat pala y,x sa halip x,y
+		}
+
+
+		/*shuuten o tamesu*/
+		Debug::WriteLine(end.size());
+		cvtColor(res, res, COLOR_GRAY2BGR);
+		for (int i = 0; i < end.size(); i++) {
+			circle(res,	cv::Point(end[i].x, end[i].y),	32.0, Scalar(0, 0, 255),1,8);
+		}
+
+		Debug::WriteLine(n.size());
+		//Debug::WriteLine(skelPoints.size());
+		//Debug::WriteLine(skelPoints[skelPoints.size()-1].y);
+		imwrite(defaultPath + "thinsss_" + filename, res);
+		//for (int i = 0; skelPoints.size(); i++) {
+		//	Debug::WriteLine(skelPoints[i].y);
+		//}
+
+		endPoints = end;
+	}
+
+	vector<cv::Point> getEndPoints() {
+		return endPoints;
+	}
+
+
+
+
+	//////////////////////
 	void setEdgeImg(Mat img) {
 		
 		Mat src = grayScaleImage.clone();
@@ -210,32 +261,34 @@ public:
 		contourImage = drawing;
 	}
 
-	Mat getContourImg() {
-		return contourImage;
-	}
+	Mat getContourImg() {return contourImage;}
 	////////////////////////
 
 
-
-
-
 	///////////////////////
-	void setLineEndImg(Mat img) {
+	void setLineEndArea(Mat img, vector<cv::Point> p) {
 		Mat res = img.clone();
-		cvtColor(res, res, COLOR_GRAY2BGR);
-		circle(res, cv::Point(skelPoints[0].x, skelPoints[0].y), 32.0, Scalar(0, 0, 255), 1, 8);
+		Mat croppedImage;
+		Rect ROI;
+
+		threshold(res, res, 0, 255, CV_THRESH_BINARY_INV);
+		for (int i = 0; i < p.size(); i++) {
+			ROI = squareAroundCentroid(cv::Point(p[i].x, p[i].y), 20, res.cols-1, res.rows-1);
+			croppedImage = res(ROI);
+			imwrite(defaultPath   + intToStr(i) + "_cropped_" + filename, croppedImage);
+			
+		}
 		
+		/*
+		cvtColor(res, res, COLOR_GRAY2BGR);
+		cv::rectangle(res,ROI,cv::Scalar(0, 0, 255),1,8);
 		imwrite(defaultPath + "end_" + filename, res);
-		lineEndImage = res;
+		*/
+		
+		//lineEndArea = res;s
 	}
 
-	Mat getLineEndImg() {
-
-
-
-		return lineEndImage;
-	}
-
+	Mat getLineEndArea() {}//return //lineEndArea;}
 
 	////////////////////////
 	void setOverlapImg(Mat img, Mat img2) {
@@ -251,6 +304,44 @@ public:
 	Mat getOverlap() {
 		return overlapImage;
 	}
+
+	////////////////////////
+	Rect squareAroundCentroid(cv::Point p, int size, int width, int height) {
+		cv::Point a, b;
+		Rect res;
+		int rad = size / 2;
+		int x1 = p.x - rad,
+			y1 = p.y + rad,
+			x2 = p.x + rad,
+			y2 = p.y - rad;
+
+		x1 = (x1 < 0) ? 0 : x1;
+		y1 = (y1 < 0) ? 0 : y1;
+		x2 = (x2 < 0) ? 0 : x2;
+		y2 = (y2 < 0) ? 0 : y2;
+
+		Debug::Write(width);
+		Debug::Write(" ");
+		Debug::WriteLine(height);
+
+		Debug::Write(p.y + rad);
+		Debug::Write(" ");
+		Debug::WriteLine(p.y - rad);
+
+		a = cv::Point(	(x1 > width) ? width : x1, 
+						(y1 > height) ? height : y1);
+
+
+		b = cv::Point((x2 > width) ? width : x2,
+						(y2 > height) ? height : y2 );
+
+		return Rect(a, b);
+	}
+	///////////////////////
+	
+
+
+
 
 	///////////////////////
 	//convert of strings
@@ -273,6 +364,16 @@ public:
 	std::wstring strToWstr(System::String ^ s) {
 		std::wstring result = msclr::interop::marshal_as<std::wstring>(s);
 		return result;
+	}
+
+	std::string intToStr(int n) {
+		std::stringstream ss;
+		ss << n;
+
+		std::string str;
+		ss >> str;
+
+		return str;
 	}
 };
 

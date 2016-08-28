@@ -138,16 +138,16 @@ namespace ClassifyLineEnd {
 		//Convert to grayscale
 		Mat img = limg.getOrigImg();
 		limg.setGrayImg(img);
-		img = limg.getGrayImg();
+		
 
 		//convert grayscale to binary
 		limg.setBinImg(limg.getGrayImg());
-		img = limg.getBinImg();
+		
 
 
 		//clean image;
 		limg.setMorpImg(limg.getBinImg());
-		img = limg.getMorpImg();
+		
 
 		//edge detection;
 		//limg.setEdgeImg(limg.getMorpImg());
@@ -155,18 +155,20 @@ namespace ClassifyLineEnd {
 
 		//contouring and cleaning;
 		limg.setContourImg(limg.getMorpImg());
-		img = limg.getContourImg();
+		
 
-		//thinning;
+		//thinning
 		limg.setSkelImg(limg.getContourImg());
-		img = limg.getSkelImg();
+		
+		//end Points
+
+		limg.setEndPoints(limg.getSkelImg());
 
 		//overlap;
-		limg.setOverlapImg(limg.getMorpImg(), limg.getSkelImg());
-		img = limg.getOverlap();
-
-		//line End
-		limg.setLineEndImg(limg.getBinImg());
+		//limg.setOverlapImg(limg.getMorpImg(), limg.getSkelImg());
+		
+		//line End Area
+		limg.setLineEndArea(limg.getBinImg(),limg.getEndPoints());
 
 
 		OutputDebugString(TEXT("Done"));
