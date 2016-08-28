@@ -4,6 +4,7 @@ C:\opencv_git\build\include\opencv2/core/persistence.hpp : warning C4819: The fi
 C:\opencv_git\build\include\opencv2/core/utility.hpp : warning C4819: The file contains a character that cannot be represented in the current code page (932). Save the file in Unicode format to prevent data loss
 C:\opencv_git\build\include\opencv2/core/utility.hpp : warning C4819: The file contains a character that cannot be represented in the current code page (932). Save the file in Unicode format to prevent data loss
 c:\users\jherenz\documents\visual studio 2015\projects\classifylineend\classifylineend\endlineclassifier.h(179): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+c:\users\jherenz\documents\visual studio 2015\projects\classifylineend\classifylineend\endlineclassifier.h(270): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
 c:\opencv_git\build\include\opencv2\core\cvstd.hpp(599): warning C4793: 'cv::String::String': function compiled as native:
   	Found an intrinsic not supported in managed code
 c:\opencv_git\build\include\opencv2\core\mat.inl.hpp(392): warning C4793: 'cv::Mat::Mat': function compiled as native:
@@ -22,5 +23,6 @@ c:\opencv_git\build\include\opencv2\core\mat.inl.hpp(580): warning C4793: 'cv::M
   	Found an intrinsic not supported in managed code
 c:\opencv_git\build\include\opencv2\core\cvstd.hpp(676): warning C4793: 'cv::String::operator=': function compiled as native:
   	Found an intrinsic not supported in managed code
+mainform.obj : warning LNK4258: directive '/ENTRY:mainCRTStartup' not compatible with switch '/ENTRY:main'; ignored
   ClassifyLineEnd.vcxproj -> C:\Users\jherenz\documents\visual studio 2015\Projects\ClassifyLineEnd\x64\Debug\ClassifyLineEnd.exe
   ClassifyLineEnd.vcxproj -> C:\Users\jherenz\documents\visual studio 2015\Projects\ClassifyLineEnd\x64\Debug\ClassifyLineEnd.pdb (Full PDB)

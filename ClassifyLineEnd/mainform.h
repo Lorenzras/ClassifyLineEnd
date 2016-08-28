@@ -119,7 +119,7 @@ namespace ClassifyLineEnd {
 #pragma endregion
 	private: System::Void btnImport_Click(System::Object^  sender, System::EventArgs^  e) {
 		OpenFileDialog ^ dlgOpenFile = gcnew OpenFileDialog();
-		dlgOpenFile->Filter = "Image|*.jpg; *.png";
+		dlgOpenFile->Filter = "Image|*.jpg; *.png; *.jpeg";
 		dlgOpenFile->Title = "Select a Image File";
 
 		// Show the Dialog.

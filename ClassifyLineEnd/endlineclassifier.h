@@ -32,7 +32,7 @@ class lineimage
 	Mat skeletonImage;
 	vector<cv::Point> skelPoints;
 	vector<cv::Point> endPoints;
-	//vector<int> endAreas;
+	vector<int> endAreas;
 
 	Mat edgeImage;
 	Mat overlapImage;
@@ -239,23 +239,41 @@ public:
 		threshold(src, src, 0, 255, CV_THRESH_BINARY_INV | CV_THRESH_OTSU);
 		//medianBlur(src, src, 11);
 		
-		cv::findContours(src, contours, heirachy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_TC89_KCOS, cv::Point(0, 0));
+		cv::findContours(src, contours, heirachy, RETR_CCOMP, CV_CHAIN_APPROX_TC89_KCOS, cv::Point(0, 0));
+
+		
+		
+
+		/*
+		//Draw contours
+		int largestContour = 0;
+		for (int i = 0; i<contours.size(); i++)
+		{
+			if (contourArea(contours[i]) > contourArea(contours[largestContour])) {
+				largestContour = i;
+			}
+		}
+		*/
 
 		//Setup the output into black
 		drawing = Mat::zeros(src.size(), CV_8UC3);
 
+		for (size_t idx = 0; idx < contours.size(); idx++) {
+			Debug::Write("Heirarchy index: ");
+			Debug::WriteLine(heirachy[idx][3]);
 
-		//Draw contours
-		int largestCountour = 0;
-		for (int i = 0; i<contours.size(); i++)
-		{
-			if (contourArea(contours[i]) > contourArea(contours[largestCountour])) {
-				largestCountour = i;
+			Debug::Write("Countour area: ");
+			Debug::WriteLine(contourArea(contours[idx]));
+			
+			if (heirachy[idx][3] == -1 && contourArea(contours[idx]) > 5) {
+				//cv::drawContours(drawing, contours, idx, cv::Scalar(0, 0, 0), CV_FILLED);
+				cv::drawContours(drawing, contours, idx, cv::Scalar(255, 255, 255), CV_FILLED, 8, heirachy);
 			}
 		}
-
-		Debug::WriteLine(contourArea(contours[largestCountour]));
-		cv::drawContours(drawing, contours, largestCountour, Scalar(255, 255, 255), CV_FILLED, 8, heirachy, 0, cv::Point());
+		Debug::Write("Heirarchy is: ");
+		Debug::WriteLine(heirachy.size());
+		//Debug::WriteLine(contourArea(contours[largestContour]));
+		//cv::drawContours(drawing, contours, -1, Scalar(255, 255, 255), 1, 8, heirachy, 1, cv::Point());
 
 		imwrite(defaultPath + "cont_" + filename, drawing);
 		contourImage = drawing;
@@ -275,9 +293,13 @@ public:
 		for (int i = 0; i < p.size(); i++) {
 			ROI = squareAroundCentroid(cv::Point(p[i].x, p[i].y), 20, res.cols-1, res.rows-1);
 			croppedImage = res(ROI);
+			endAreas.push_back (cv::countNonZero(croppedImage));
+			Debug::Write("Area: ");
+			Debug::WriteLine(endAreas[i]);
 			imwrite(defaultPath   + intToStr(i) + "_cropped_" + filename, croppedImage);
 			
 		}
+
 		
 		/*
 		cvtColor(res, res, COLOR_GRAY2BGR);
